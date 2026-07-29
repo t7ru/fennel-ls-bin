@@ -1,0 +1,86 @@
+name: Build and release
+
+on:
+    workflow_dispatch:
+        inputs:
+            mode:
+                type: choice
+                options: [prerelease, release]
+
+permissions:
+    contents: write
+
+concurrency:
+    group: release-${{ inputs.mode }}
+
+jobs:
+    decide:
+        runs-on: ubuntu-latest
+        outputs:
+            should_release: ${{ steps.r.outputs.should_release }}
+            upstream_sha: ${{ steps.r.outputs.upstream_sha }}
+            release_tag: ${{ steps.r.outputs.release_tag }}
+            is_prerelease: ${{ steps.r.outputs.is_prerelease }}
+            release_name: ${{ steps.r.outputs.release_name }}
+            release_body: ${{ steps.r.outputs.release_body }}
+        steps:
+            - uses: actions/checkout@v7
+            - id: r
+              env:
+                  MODE: ${{ inputs.mode }}
+                  GH_TOKEN: ${{ github.token }}
+              run: bash decide.sh
+
+    build-script:
+        needs: decide
+        if: needs.decide.outputs.should_release == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+            - env:
+                  UPSTREAM_SHA: ${{ needs.decide.outputs.upstream_sha }}
+              run: bash build-script.sh
+            - uses: actions/upload-artifact@v7
+              with:
+                  name: script
+                  path: fennel-ls
+
+    build-binary:
+        needs: decide
+        if: needs.decide.outputs.should_release == 'true'
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest, macos-latest, windows-latest]
+        runs-on: ${{ matrix.os }}
+        defaults:
+            run:
+                shell: bash
+        steps:
+            - uses: actions/checkout@v7
+            - id: b
+              env:
+                  UPSTREAM_SHA: ${{ needs.decide.outputs.upstream_sha }}
+              run: bash build-binary.sh
+            - uses: actions/upload-artifact@v7
+              with:
+                  name: bin-${{ matrix.os }}
+                  path: ${{ steps.b.outputs.asset }}
+
+    publish:
+        needs: [decide, build-script, build-binary]
+        if: needs.decide.outputs.should_release == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+            - uses: actions/download-artifact@v8
+              with:
+                  path: dist
+                  merge-multiple: true
+            - env:
+                  GH_TOKEN: ${{ github.token }}
+                  RELEASE_TAG: ${{ needs.decide.outputs.release_tag }}
+                  RELEASE_NAME: ${{ needs.decide.outputs.release_name }}
+                  RELEASE_BODY: ${{ needs.decide.outputs.release_body }}
+                  IS_PRERELEASE: ${{ needs.decide.outputs.is_prerelease }}
+              run: bash publish.sh dist
