@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
     decide:
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-slim
         outputs:
             should_release: ${{ steps.r.outputs.should_release }}
             upstream_sha: ${{ steps.r.outputs.upstream_sha }}
@@ -34,7 +34,7 @@ jobs:
     build-script:
         needs: decide
         if: needs.decide.outputs.should_release == 'true'
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-slim
         steps:
             - uses: actions/checkout@v7
             - env:
@@ -70,7 +70,7 @@ jobs:
     publish:
         needs: [decide, build-script, build-binary]
         if: needs.decide.outputs.should_release == 'true'
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-slim
         steps:
             - uses: actions/checkout@v7
             - uses: actions/download-artifact@v8
