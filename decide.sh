@@ -25,7 +25,7 @@ if [ "$MODE" = prerelease ]; then
 	tag="pre-$short"
 	pre=true
 	title="fennel-ls pre-release $short"
-	body="Pre-release of $UPSTREAM \`$sha\`."
+	body="${UPSTREAM%/}/commit/$sha"
 	latest=$(git tag -l --sort=-v:refname | head -n1)
 	if [ "$auto" = true ] && [ -n "$latest" ] && [ "$(git rev-parse "$latest^{commit}")" = "$sha" ]; then
 		echo "::notice::skip — HEAD is already upstream $latest"
