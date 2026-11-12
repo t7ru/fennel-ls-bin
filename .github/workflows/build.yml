@@ -46,7 +46,9 @@ jobs:
             - uses: actions/upload-artifact@v7
               with:
                   name: script
-                  path: fennel-ls
+                  path: |
+                      fennel-ls
+                      fennel-ls.tar.gz
 
     build-binary:
         needs: decide

@@ -38,6 +38,12 @@ compile() {
 	echo "$built"
 }
 
+tgz() {
+	chmod +x "$1"
+	COPYFILE_DISABLE=1 tar -czf "$1.tar.gz" "$1"
+	echo "$1.tar.gz"
+}
+
 assets=()
 case "$sys" in
 	Linux)
@@ -49,7 +55,7 @@ case "$sys" in
 		built=$(compile "$lua_dir/lua" "$lua_dir" gcc out)
 		cp "$built" "$asset"
 		"./$asset" --version
-		assets+=("$asset")
+		assets+=("$asset" "$(tgz "$asset")")
 		;;
 	Darwin)
 		build_lua lua-native macosx cc
@@ -63,7 +69,7 @@ case "$sys" in
 		built=$(compile "$lua_bin" "$lua_dir" cc out-native)
 		cp "$built" "$native_asset"
 		"./$native_asset" --version
-		assets+=("$native_asset")
+		assets+=("$native_asset" "$(tgz "$native_asset")")
 
 		if [ "$mach" = arm64 ]; then
 			cross_arch=x86_64
@@ -79,7 +85,7 @@ case "$sys" in
 		file "$cross_asset"
 		file "$cross_asset" | grep -q "$cross_arch" \
 			|| { echo "cross build produced wrong arch" >&2; exit 1; }
-		assets+=("$cross_asset")
+		assets+=("$cross_asset" "$(tgz "$cross_asset")")
 		;;
 	MINGW*|MSYS*|CYGWIN*)
 		build_lua lua-native mingw gcc

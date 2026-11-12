@@ -20,3 +20,5 @@ git clone "$UPSTREAM" src
 git -C src checkout --detach "$UPSTREAM_SHA"
 make -C src FENNEL="$PWD/fennel"
 cp src/fennel-ls "$out"
+chmod +x "$out"
+tar -czf "$out.tar.gz" "$out"
