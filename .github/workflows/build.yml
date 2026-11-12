@@ -1,17 +1,20 @@
 name: Build and release
 
 on:
+    schedule:
+        - cron: "17 14 * * *"
     workflow_dispatch:
         inputs:
             mode:
                 type: choice
-                options: [prerelease, release]
+                options: [auto, prerelease, release]
+                default: auto
 
 permissions:
     contents: write
 
 concurrency:
-    group: release-${{ inputs.mode }}
+    group: release
 
 jobs:
     decide:
@@ -27,7 +30,7 @@ jobs:
             - uses: actions/checkout@v7
             - id: r
               env:
-                  MODE: ${{ inputs.mode }}
+                  MODE: ${{ inputs.mode || 'auto' }}
                   GH_TOKEN: ${{ github.token }}
               run: bash decide.sh
 

@@ -8,6 +8,17 @@ dir=$(mktemp -d)
 git clone "$UPSTREAM" "$dir/src"
 cd "$dir/src"
 
+auto=false
+if [ "$MODE" = auto ]; then
+	auto=true
+	tag=$(git tag -l --sort=-v:refname | head -n1)
+	if [ -n "$tag" ] && ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+		MODE=release
+	else
+		MODE=prerelease
+	fi
+fi
+
 if [ "$MODE" = prerelease ]; then
 	sha=$(git rev-parse HEAD)
 	short=${sha:0:12}
@@ -15,6 +26,12 @@ if [ "$MODE" = prerelease ]; then
 	pre=true
 	title="fennel-ls pre-release $short"
 	body="Pre-release of $UPSTREAM \`$sha\`."
+	latest=$(git tag -l --sort=-v:refname | head -n1)
+	if [ "$auto" = true ] && [ -n "$latest" ] && [ "$(git rev-parse "$latest^{commit}")" = "$sha" ]; then
+		echo "::notice::skip — HEAD is already upstream $latest"
+		echo "should_release=false" >>"$GITHUB_OUTPUT"
+		exit 0
+	fi
 else
 	tag=$(git tag -l --sort=-v:refname | head -n1)
 	[ -n "$tag" ] || { echo "no upstream tags" >&2; exit 1; }
